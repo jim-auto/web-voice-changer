@@ -1,0 +1,19 @@
+{
+  "name": "web-voice-changer",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "test:e2e": "node scripts/playwright-smoke.mjs"
+  },
+  "dependencies": {
+    "onnxruntime-web": "^1.24.3",
+    "vite": "^8.0.9"
+  },
+  "devDependencies": {
+    "playwright": "^1.59.1"
+  }
+}
