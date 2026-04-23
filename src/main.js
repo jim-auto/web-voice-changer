@@ -58,7 +58,10 @@ app.innerHTML = `
       <article class="waveform-panel">
         <div class="panel-header">
           <h2>Output</h2>
-          <span>onnx</span>
+          <div class="panel-actions">
+            <span>onnx</span>
+            <button id="replayButton" class="panel-button" type="button" disabled>Replay output</button>
+          </div>
         </div>
         <canvas id="outputWaveform" class="waveform" width="960" height="260"></canvas>
       </article>
@@ -74,6 +77,7 @@ const engineElement = document.querySelector('#engine');
 const sampleRateElement = document.querySelector('#sampleRate');
 const durationElement = document.querySelector('#duration');
 const messageElement = document.querySelector('#message');
+const replayButton = document.querySelector('#replayButton');
 const inputWaveform = document.querySelector('#inputWaveform');
 const outputWaveform = document.querySelector('#outputWaveform');
 
@@ -85,9 +89,12 @@ const recorder = new AudioRecorder({
 const voiceChanger = new VoiceChanger();
 let lastInputSamples = null;
 let lastOutputSamples = null;
+let lastOutputSampleRate = null;
+let isOutputPlaying = false;
 
 drawWaveform(inputWaveform);
 drawWaveform(outputWaveform, null, { color: '#744f2d' });
+updateReplayButtonState();
 
 recordButton.addEventListener('click', async () => {
   try {
@@ -100,8 +107,10 @@ recordButton.addEventListener('click', async () => {
     timerElement.textContent = '00:00.0';
     lastInputSamples = null;
     lastOutputSamples = null;
+    lastOutputSampleRate = null;
     drawWaveform(inputWaveform);
     drawWaveform(outputWaveform, null, { color: '#744f2d' });
+    updateReplayButtonState();
 
     await recorder.start();
     setStatus('recording');
@@ -130,15 +139,17 @@ stopButton.addEventListener('click', async () => {
 
     const converted = await voiceChanger.convert(recording.samples, recording.sampleRate);
     lastOutputSamples = converted.samples;
+    lastOutputSampleRate = converted.sampleRate;
     engineElement.textContent = converted.provider;
     drawWaveform(outputWaveform, converted.samples, { color: '#744f2d' });
+    updateReplayButtonState();
 
     if (converted.warning) {
       setMessage(converted.warning);
     }
 
     setStatus('done');
-    await playFloat32Audio(converted.samples, converted.sampleRate);
+    await playCurrentOutput();
   } catch (error) {
     recorder.cancel();
     setStatus('error');
@@ -146,6 +157,15 @@ stopButton.addEventListener('click', async () => {
   } finally {
     recordButton.disabled = false;
     stopButton.disabled = true;
+  }
+});
+
+replayButton.addEventListener('click', async () => {
+  try {
+    await playCurrentOutput();
+  } catch (error) {
+    setStatus('error');
+    setMessage(error.message);
   }
 });
 
@@ -162,6 +182,30 @@ function setStatus(status) {
 function setMessage(message) {
   messageElement.textContent = message;
   messageElement.hidden = !message;
+}
+
+function hasPlayableOutput() {
+  return Boolean(lastOutputSamples?.length) && Number.isFinite(lastOutputSampleRate);
+}
+
+function updateReplayButtonState() {
+  replayButton.disabled = !hasPlayableOutput() || isOutputPlaying;
+}
+
+async function playCurrentOutput() {
+  if (!hasPlayableOutput()) {
+    throw new Error('There is no output audio to play.');
+  }
+
+  isOutputPlaying = true;
+  updateReplayButtonState();
+
+  try {
+    await playFloat32Audio(lastOutputSamples, lastOutputSampleRate);
+  } finally {
+    isOutputPlaying = false;
+    updateReplayButtonState();
+  }
 }
 
 function formatTime(seconds) {

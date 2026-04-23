@@ -31,6 +31,7 @@ try {
 
   const recordButton = page.getByRole('button', { name: /record/i });
   const stopButton = page.getByRole('button', { name: /stop/i });
+  const replayButton = page.getByRole('button', { name: /replay output/i });
 
   await recordButton.click();
   await page.locator('#status').filter({ hasText: 'recording' }).waitFor({ timeout: 10000 });
@@ -38,6 +39,16 @@ try {
   await stopButton.click();
   await page.locator('#status').filter({ hasText: 'done' }).waitFor({ timeout: 30000 });
   await page.waitForFunction(() => !document.querySelector('#recordButton')?.disabled, null, {
+    timeout: 30000,
+  });
+  await page.waitForFunction(() => !document.querySelector('#replayButton')?.disabled, null, {
+    timeout: 30000,
+  });
+  await replayButton.click();
+  await page.waitForFunction(() => document.querySelector('#replayButton')?.disabled, null, {
+    timeout: 5000,
+  });
+  await page.waitForFunction(() => !document.querySelector('#replayButton')?.disabled, null, {
     timeout: 30000,
   });
 
@@ -69,6 +80,7 @@ try {
       message: document.querySelector('#message')?.textContent,
       recordDisabled: document.querySelector('#recordButton')?.disabled,
       stopDisabled: document.querySelector('#stopButton')?.disabled,
+      replayDisabled: document.querySelector('#replayButton')?.disabled,
       inputPixels: nonBackgroundPixelCount('#inputWaveform'),
       outputPixels: nonBackgroundPixelCount('#outputWaveform'),
     };

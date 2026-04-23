@@ -273,6 +273,29 @@ h1 {
   text-transform: uppercase;
 }
 
+.panel-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.panel-button {
+  min-height: 32px;
+  padding: 0 12px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--surface-strong);
+  color: var(--ink);
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
+.panel-button:hover:not(:disabled) {
+  box-shadow: none;
+}
+
 .waveform {
   display: block;
   width: 100%;
@@ -299,6 +322,10 @@ h1 {
   }
 
   .status-block {
+    justify-content: flex-start;
+  }
+
+  .panel-actions {
     justify-content: flex-start;
   }
 
