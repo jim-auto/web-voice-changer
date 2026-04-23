@@ -11,7 +11,7 @@
 - 推論後の`Float32Array`波形を`AudioBuffer`に戻して再生
 - 入力と出力の波形表示、録音時間、ステータス表示
 
-初期状態の`models/model.onnx`はIdentity変換の軽量モデルです。録音から推論、再生までの配線確認用なので、実際の音声変換を行う場合は同じ入出力形式の軽量モデルに差し替えてください。
+初期状態の`models/model.onnx`はIdentity変換の軽量モデルです。ただし、公開デモで変化が分かるように、既定の`src/modelProfile.js`は推論後にブラウザ内の簡易ピッチ変換を適用します。録音から推論、再生までの配線確認用なので、実際の音声変換を行う場合は同じ入出力形式の軽量モデルに差し替えてください。
 
 ## 技術スタック
 
@@ -68,11 +68,13 @@ npm run test:e2e
 - 出力: `float32` waveform
 - 推奨サイズ: 50MB以下
 
-既定の推論アダプタは `src/modelProfile.js` にあります。現在の Identity モデル向け profile は以下を担当します。
+既定の推論アダプタは `src/modelProfile.js` にあります。現在の既定 profile は以下を担当します。
 
 - 入力名と出力名の解決
 - 入力 shape の解決
 - 推論前 `preprocess`
 - 推論後 `postprocess`
+
+同梱の Identity モデルを使う間は、`postprocess` でブラウザ内の簡易ピッチ変換をかけて、出力音声が入力とまったく同じにならないようにしています。純粋な identity 挙動に戻したい場合は `identityModelProfile` を使ってください。
 
 デフォルトではモデルの最初の入力名と最初の出力名を使い、入力 shape はメタデータがあればそれに合わせ、動的次元は最後の次元をサンプル数、それ以外を `1` として扱います。実モデルへ差し替える場合は `expectedSampleRate`、`inputName`、`outputName`、`preprocess`、`postprocess` などを profile 側で調整してください。

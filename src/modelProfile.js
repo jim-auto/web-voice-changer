@@ -1,3 +1,5 @@
+const DEMO_PITCH_RATIO = 1.18;
+
 export const identityModelProfile = Object.freeze({
   expectedSampleRate: null,
   inputName: null,
@@ -49,15 +51,29 @@ export const identityModelProfile = Object.freeze({
   },
 });
 
+export const demoModelProfile = Object.freeze({
+  ...identityModelProfile,
+  postprocess({ outputTensor, sampleRate }) {
+    if (!outputTensor?.data) {
+      throw new Error('The ONNX model did not return a tensor output.');
+    }
+
+    return {
+      samples: applyDemoVoiceShift(toFloat32Array(outputTensor.data), DEMO_PITCH_RATIO),
+      sampleRate,
+    };
+  },
+});
+
 export function getModelProfile(overrides = {}) {
   return {
-    ...identityModelProfile,
+    ...demoModelProfile,
     ...overrides,
-    preprocess: overrides.preprocess ?? identityModelProfile.preprocess,
-    resolveInputName: overrides.resolveInputName ?? identityModelProfile.resolveInputName,
-    resolveOutputName: overrides.resolveOutputName ?? identityModelProfile.resolveOutputName,
-    resolveInputShape: overrides.resolveInputShape ?? identityModelProfile.resolveInputShape,
-    postprocess: overrides.postprocess ?? identityModelProfile.postprocess,
+    preprocess: overrides.preprocess ?? demoModelProfile.preprocess,
+    resolveInputName: overrides.resolveInputName ?? demoModelProfile.resolveInputName,
+    resolveOutputName: overrides.resolveOutputName ?? demoModelProfile.resolveOutputName,
+    resolveInputShape: overrides.resolveInputShape ?? demoModelProfile.resolveInputShape,
+    postprocess: overrides.postprocess ?? demoModelProfile.postprocess,
   };
 }
 
@@ -67,4 +83,23 @@ export function toFloat32Array(data) {
   }
 
   return Float32Array.from(data);
+}
+
+function applyDemoVoiceShift(samples, ratio) {
+  if (!(samples instanceof Float32Array) || samples.length === 0) {
+    return samples;
+  }
+
+  const outputLength = Math.max(1, Math.round(samples.length / ratio));
+  const shifted = new Float32Array(outputLength);
+
+  for (let index = 0; index < outputLength; index += 1) {
+    const sourceIndex = index * ratio;
+    const leftIndex = Math.min(samples.length - 1, Math.floor(sourceIndex));
+    const rightIndex = Math.min(samples.length - 1, leftIndex + 1);
+    const weight = sourceIndex - leftIndex;
+    shifted[index] = samples[leftIndex] * (1 - weight) + samples[rightIndex] * weight;
+  }
+
+  return shifted;
 }
